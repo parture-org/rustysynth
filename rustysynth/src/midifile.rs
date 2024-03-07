@@ -10,12 +10,46 @@ use crate::MidiFileLoopType;
 
 #[derive(Clone, Copy, Debug)]
 #[non_exhaustive]
-pub(crate) enum Message {
+pub enum Message {
     Normal { status: u8, data1: u8, data2: u8 },
     TempoChange { bytes: [u8; 3] },
     LoopStart,
     LoopEnd,
     EndOfTrack,
+}
+
+impl Message {
+    /// Returns the channel (lower nibble of status) for Normal messages, or 0 for others.
+    pub fn channel(&self) -> u8 {
+        match self {
+            Message::Normal { status, .. } => status & 0x0F,
+            _ => 0,
+        }
+    }
+
+    /// Returns the command (upper nibble of status) for Normal messages, or 0 for others.
+    pub fn command(&self) -> u8 {
+        match self {
+            Message::Normal { status, .. } => status & 0xF0,
+            _ => 0,
+        }
+    }
+
+    /// Returns data1 for Normal messages, or 0 for others.
+    pub fn data1(&self) -> u8 {
+        match self {
+            Message::Normal { data1, .. } => *data1,
+            _ => 0,
+        }
+    }
+
+    /// Returns data2 for Normal messages, or 0 for others.
+    pub fn data2(&self) -> u8 {
+        match self {
+            Message::Normal { data2, .. } => *data2,
+            _ => 0,
+        }
+    }
 }
 
 impl Message {
