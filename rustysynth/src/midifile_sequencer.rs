@@ -7,7 +7,11 @@ use crate::midifile::Message;
 use crate::midifile::MidiFile;
 use crate::synthesizer::Synthesizer;
 
-pub type OnMessageCallback = Box<dyn FnMut(f64, Message) + Send + Sync>;
+pub type CurrentTimeSeconds = f64;
+pub type TotalTimeSeconds = f64;
+
+pub type OnMessageCallback =
+    Box<dyn FnMut((CurrentTimeSeconds, TotalTimeSeconds), Message) + Send + Sync>;
 
 /// An instance of the MIDI file sequencer.
 #[non_exhaustive]
@@ -120,7 +124,16 @@ impl MidiFileSequencer {
 
     fn run_callbacks(&mut self, msg: Message) {
         for mut callback in self.callbacks.iter_mut() {
-            callback(self.current_time, msg);
+            callback(
+                (
+                    // using the current time offset and the total MidiFile time
+                    // in seconds, a consumer should be able to calculate the
+                    // offset in terms of beats, measures, etc.
+                    self.current_time,
+                    self.midi_file.as_ref().unwrap().get_length(),
+                ),
+                msg,
+            );
         }
     }
 
