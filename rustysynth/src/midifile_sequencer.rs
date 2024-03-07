@@ -124,6 +124,10 @@ impl MidiFileSequencer {
         }
     }
 
+    pub fn take_callbacks(self) -> Vec<OnMessageCallback> {
+        self.callbacks
+    }
+
     fn process_events(&mut self) {
         // clone needed here to prevent multiple mutable borrows errors,
         // but since it is an Arc, it is cheap
