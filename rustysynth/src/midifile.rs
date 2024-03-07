@@ -10,7 +10,7 @@ use crate::MidiFileLoopType;
 
 #[derive(Clone, Copy)]
 #[non_exhaustive]
-pub(crate) struct Message {
+pub struct Message {
     pub(crate) channel: u8,
     pub(crate) command: u8,
     pub(crate) data1: u8,

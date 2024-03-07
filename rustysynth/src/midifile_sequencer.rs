@@ -7,6 +7,8 @@ use crate::midifile::Message;
 use crate::midifile::MidiFile;
 use crate::synthesizer::Synthesizer;
 
+pub type OnMessageCallback = Box<dyn FnMut(f64, Message) + Send + Sync>;
+
 /// An instance of the MIDI file sequencer.
 #[non_exhaustive]
 pub struct MidiFileSequencer {
@@ -22,6 +24,10 @@ pub struct MidiFileSequencer {
     current_time: f64,
     msg_index: usize,
     loop_index: usize,
+
+    /// callback handlers to be called when note events happen
+    /// and are sent to the synth
+    callbacks: Vec<OnMessageCallback>,
 }
 
 impl MidiFileSequencer {
@@ -40,6 +46,7 @@ impl MidiFileSequencer {
             current_time: 0.0,
             msg_index: 0,
             loop_index: 0,
+            callbacks: vec![],
         }
     }
 
@@ -107,8 +114,20 @@ impl MidiFileSequencer {
         }
     }
 
+    pub fn on_message(&mut self, callback: OnMessageCallback) {
+        self.callbacks.push(callback);
+    }
+
+    fn run_callbacks(&mut self, msg: Message) {
+        for mut callback in self.callbacks.iter_mut() {
+            callback(self.current_time, msg);
+        }
+    }
+
     fn process_events(&mut self) {
-        let midi_file = match self.midi_file.as_ref() {
+        // clone needed here to prevent multiple mutable borrows errors,
+        // but since it is an Arc, it is cheap
+        let midi_file = match self.midi_file.clone() {
             Some(value) => value,
             None => return,
         };
@@ -125,6 +144,10 @@ impl MidiFileSequencer {
                         msg.data1 as i32,
                         msg.data2 as i32,
                     );
+
+                    // notify listeners that a message happened. handy for
+                    // UI to adjust state when a song is progressing
+                    self.run_callbacks(msg);
                 } else if self.play_loop {
                     if msg.get_message_type() == Message::LOOP_START {
                         self.loop_index = self.msg_index;
