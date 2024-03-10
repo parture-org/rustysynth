@@ -32,6 +32,10 @@ pub struct MidiFileSequencer {
     /// callback handlers to be called when note events happen
     /// and are sent to the synth
     callbacks: Vec<OnMessageCallback>,
+
+    // when we play stuff during the action for inserting notes,
+    // it should be transient playing and not trigger any callbacks.
+    ignore_callbacks: bool,
 }
 
 impl MidiFileSequencer {
@@ -51,6 +55,7 @@ impl MidiFileSequencer {
             msg_index: 0,
             loop_index: 0,
             callbacks: vec![],
+            ignore_callbacks: false,
         }
     }
 
@@ -77,6 +82,10 @@ impl MidiFileSequencer {
     pub fn stop(&mut self) {
         self.midi_file = None;
         self.synthesizer.reset();
+    }
+
+    pub fn set_ignore_callbacks(&mut self, ignore: bool) {
+        self.ignore_callbacks = ignore;
     }
 
     /// Renders the waveform.
@@ -123,6 +132,10 @@ impl MidiFileSequencer {
     }
 
     fn run_callbacks(&mut self, msg: Message) {
+        if self.ignore_callbacks {
+            return;
+        }
+
         for mut callback in self.callbacks.iter_mut() {
             callback(
                 (
@@ -161,10 +174,6 @@ impl MidiFileSequencer {
                         msg.data1 as i32,
                         msg.data2 as i32,
                     );
-
-                    // notify listeners that a message happened. handy for
-                    // UI to adjust state when a song is progressing
-                    self.run_callbacks(msg);
                 } else if self.play_loop {
                     if msg.get_message_type() == Message::LOOP_START {
                         self.loop_index = self.msg_index;
@@ -174,6 +183,11 @@ impl MidiFileSequencer {
                         self.synthesizer.note_off_all(false);
                     }
                 }
+
+                // notify listeners that a message happened. handy for
+                // UI to adjust state when a song is progressing
+                self.run_callbacks(msg);
+
                 self.msg_index += 1;
             } else {
                 break;
