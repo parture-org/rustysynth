@@ -136,7 +136,7 @@ impl MidiFileSequencer {
             return;
         }
 
-        for mut callback in self.callbacks.iter_mut() {
+        for callback in self.callbacks.iter_mut() {
             callback(
                 (
                     // using the current time offset and the total MidiFile time
@@ -260,5 +260,9 @@ impl MidiFileSequencer {
         }
 
         self.speed = value;
+    }
+
+    pub fn set_position(&mut self, pos: f64) {
+        self.current_time = pos;
     }
 }
