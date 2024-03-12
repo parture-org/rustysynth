@@ -254,4 +254,8 @@ impl MidiFileSequencer {
 
         self.speed = value;
     }
+
+    pub fn set_position(&mut self, pos: f64) {
+        self.current_time = pos;
+    }
 }
